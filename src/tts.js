@@ -3,11 +3,12 @@ import initPiperWasm, * as piperWasm from 'piper-plus/wasm/multilingual';
 import * as ort from 'onnxruntime-web';
 
 // CSS10 Japanese model is used as the default because the model card states
-// that it follows the CSS10 public-domain license, making it a better fit for
-// a general-purpose explainer tool than voices with additional usage terms.
+// that it follows the CSS10 public-domain license, making it a good fit for
+// a general-purpose explainer tool.
 const MODEL = 'ayousanz/piper-plus-css10-ja-6lang';
 const MAX_CHUNK_CHARS = 135;
 const SILENCE_SECONDS = 0.16;
+const DEFAULT_SPEAKER_EMBEDDING_DIM = 256;
 
 let enginePromise = null;
 let wasmModulePromise = null;
@@ -30,6 +31,78 @@ async function loadPiperWasm() {
   return wasmModulePromise;
 }
 
+/**
+ * Piper Plus 0.6 compatibility shim for distributed ONNX models that expose
+ * speaker_embedding / speaker_embedding_mask as required inputs even during
+ * ordinary single-speaker synthesis.
+ *
+ * The Piper Plus project documents the correct non-voice-cloning behaviour as
+ * a zero-filled embedding with mask=0. That keeps inference on the normal
+ * speaker/language-conditioning path. The native runtimes gained this fix
+ * before the currently published browser package, so we add it at the
+ * InferenceSession boundary until npm includes the same behaviour.
+ */
+function installSpeakerEmbeddingCompatibility(tts) {
+  const session = tts?._session;
+  if (!session || session.__documentToVideoSpeakerCompat) return;
+
+  const inputNames = Array.from(session.inputNames || []);
+  const needsEmbedding = inputNames.includes('speaker_embedding');
+  const needsMask = inputNames.includes('speaker_embedding_mask');
+  if (!needsEmbedding && !needsMask) return;
+
+  const metadata = Array.from(session.inputMetadata || []);
+  const embeddingMeta = metadata.find((item) => item?.name === 'speaker_embedding');
+  const embeddingDim = resolveSpeakerEmbeddingDimension(embeddingMeta);
+  const originalRun = session.run.bind(session);
+
+  session.run = async (feeds, ...args) => {
+    const compatibleFeeds = { ...feeds };
+
+    if (needsEmbedding && compatibleFeeds.speaker_embedding == null) {
+      compatibleFeeds.speaker_embedding = new ort.Tensor(
+        'float32',
+        new Float32Array(embeddingDim),
+        [1, embeddingDim],
+      );
+    }
+
+    // mask=0 is intentional. It tells models with the forward-compatible
+    // voice-cloning hook to ignore the zero embedding and use their normal
+    // speaker/language conditioning instead.
+    if (needsMask) {
+      compatibleFeeds.speaker_embedding_mask = new ort.Tensor(
+        'int64',
+        new BigInt64Array([0n]),
+        [1],
+      );
+    }
+
+    return originalRun(compatibleFeeds, ...args);
+  };
+
+  Object.defineProperty(session, '__documentToVideoSpeakerCompat', {
+    value: true,
+    configurable: false,
+    enumerable: false,
+    writable: false,
+  });
+}
+
+function resolveSpeakerEmbeddingDimension(metadata) {
+  const shape = metadata?.isTensor ? metadata.shape : null;
+  if (Array.isArray(shape)) {
+    // Typical shape is [1, 256] (or another fixed embedding width). Ignore
+    // batch dimension 1 and symbolic dimensions; fall back to the dimension
+    // used by Piper Plus when the ONNX shape is symbolic.
+    const fixedDimension = [...shape]
+      .reverse()
+      .find((value) => Number.isInteger(value) && value > 1);
+    if (fixedDimension) return fixedDimension;
+  }
+  return DEFAULT_SPEAKER_EMBEDDING_DIM;
+}
+
 export async function initializeTts(onProgress = () => {}) {
   if (!enginePromise) {
     // GitHub Pages does not provide cross-origin isolation by default.
@@ -41,10 +114,15 @@ export async function initializeTts(onProgress = () => {}) {
       ort,
       wasmLoader: loadPiperWasm,
       onProgress,
-    }).catch((error) => {
-      enginePromise = null;
-      throw error;
-    });
+    })
+      .then((tts) => {
+        installSpeakerEmbeddingCompatibility(tts);
+        return tts;
+      })
+      .catch((error) => {
+        enginePromise = null;
+        throw error;
+      });
   }
   return enginePromise;
 }
