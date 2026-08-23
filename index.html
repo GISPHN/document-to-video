@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="PDF、Word、PowerPoint、テキストから短い解説動画をブラウザ内で作成します。" />
+    <title>資料から解説動画をつくる</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <div>
+          <p class="eyebrow">DOCUMENT TO VIDEO</p>
+          <h1>資料から解説動画をつくる</h1>
+          <p class="lead">資料を読み込み、要点を整理し、ナレーション付きの短い解説動画を作成します。</p>
+        </div>
+        <div class="privacy-badge">資料は原則ブラウザ内で処理</div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card" aria-labelledby="input-title">
+        <div class="section-heading">
+          <span class="step">1</span>
+          <div>
+            <h2 id="input-title">資料を入れる</h2>
+            <p>PDF、Word、PowerPoint、TXT、Markdownに対応しています。文章の貼り付けだけでも使えます。</p>
+          </div>
+        </div>
+
+        <label id="drop-zone" class="drop-zone" for="file-input" tabindex="0">
+          <input id="file-input" type="file" accept=".pdf,.docx,.pptx,.txt,.md,.markdown,.csv" hidden />
+          <span class="drop-icon" aria-hidden="true">＋</span>
+          <strong>資料をここに置く</strong>
+          <span>またはクリックしてファイルを選択</span>
+          <small>PDF / DOCX / PPTX / TXT / MD / CSV</small>
+        </label>
+        <div id="file-status" class="file-status" hidden></div>
+
+        <div class="divider"><span>または</span></div>
+
+        <label class="field-label" for="paste-text">文章を貼り付ける</label>
+        <textarea id="paste-text" class="text-input" rows="8" placeholder="ここに解説したい文章を貼り付けてください。"></textarea>
+      </section>
+
+      <section class="card" aria-labelledby="settings-title">
+        <div class="section-heading">
+          <span class="step">2</span>
+          <div>
+            <h2 id="settings-title">動画の条件を選ぶ</h2>
+            <p>迷った場合は「3分・一般向け」のままで構いません。</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <fieldset>
+            <legend>動画の長さ</legend>
+            <div class="segmented">
+              <label><input type="radio" name="duration" value="1" /><span>1分</span></label>
+              <label><input type="radio" name="duration" value="3" checked /><span>3分</span></label>
+              <label><input type="radio" name="duration" value="5" /><span>5分</span></label>
+            </div>
+          </fieldset>
+
+          <label class="select-field">
+            <span>説明する相手</span>
+            <select id="audience">
+              <option value="general" selected>一般向け</option>
+              <option value="professional">専門職向け</option>
+              <option value="student">学生向け</option>
+              <option value="manager">管理職向け</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="notice">
+          <strong>重要</strong>
+          <p>自動整理は原資料の意味を完全には保証しません。特に医療・保健・研究・行政資料では、動画作成前に構成と台本を確認してください。</p>
+        </div>
+
+        <button id="analyze-btn" class="primary-button" type="button">内容を整理する</button>
+      </section>
+
+      <section id="result-section" class="card" aria-labelledby="result-title" hidden>
+        <div class="section-heading">
+          <span class="step">3</span>
+          <div>
+            <h2 id="result-title">構成と台本を確認する</h2>
+            <p>タイトルとナレーションは、そのまま編集できます。</p>
+          </div>
+        </div>
+
+        <div class="analysis-summary">
+          <div><span>資料種別</span><strong id="doc-type">－</strong></div>
+          <div><span>シーン数</span><strong id="scene-count">－</strong></div>
+          <div><span>推定時間</span><strong id="estimated-duration">－</strong></div>
+        </div>
+
+        <div id="scene-list" class="scene-list"></div>
+
+        <div class="button-row">
+          <button id="download-script-btn" class="secondary-button" type="button">台本を保存</button>
+          <button id="download-srt-btn" class="secondary-button" type="button">字幕を保存</button>
+        </div>
+      </section>
+
+      <section id="video-section" class="card" aria-labelledby="video-title" hidden>
+        <div class="section-heading">
+          <span class="step">4</span>
+          <div>
+            <h2 id="video-title">動画を作る</h2>
+            <p>ナレーション付き動画では、初回のみ日本語音声モデルをダウンロードします。</p>
+          </div>
+        </div>
+
+        <div class="voice-info">
+          <div>
+            <strong>日本語ナレーション</strong>
+            <p>Piper Plusの日本語音声を利用します。音声合成はブラウザ内で実行されます。</p>
+          </div>
+          <button id="voice-preview-btn" class="secondary-button" type="button">音声を試す</button>
+        </div>
+
+        <div id="progress-box" class="progress-box" hidden>
+          <div class="progress-label-row">
+            <span id="progress-label">準備しています</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <progress id="progress-bar" max="100" value="0"></progress>
+          <p id="progress-detail"></p>
+        </div>
+
+        <div class="video-actions">
+          <button id="create-video-btn" class="primary-button" type="button">ナレーション付き動画を作る</button>
+          <button id="create-silent-video-btn" class="secondary-button" type="button">音声なし動画を作る</button>
+        </div>
+        <p class="render-note">動画はブラウザで実時間レンダリングするため、3分動画なら最終生成におおむね3分程度かかります。</p>
+
+        <div id="video-result" class="video-result" hidden>
+          <video id="preview-video" controls playsinline></video>
+          <div class="button-row">
+            <a id="download-video-link" class="primary-button link-button" download="document-video.webm">動画を保存</a>
+          </div>
+          <p class="format-note">保存形式はWebMです。YouTubeへそのままアップロードできます。</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>Document to Video — client side document explainer</p>
+      </div>
+    </footer>
+
+    <canvas id="render-canvas" width="1280" height="720" hidden></canvas>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
