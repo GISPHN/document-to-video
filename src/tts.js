@@ -9,6 +9,13 @@ const MODEL = 'ayousanz/piper-plus-css10-ja-6lang';
 const MAX_CHUNK_CHARS = 135;
 const SILENCE_SECONDS = 0.16;
 
+// Current distributed Piper Plus multilingual ONNX models expose
+// speaker_embedding as a required input even for ordinary synthesis.
+// Piper Plus 0.6.0 already knows how to turn this public option into the ONNX
+// feed, but it does not add the input when the option is omitted. A zero
+// embedding is sufficient to satisfy the model for our fixed narrator use.
+const SPEAKER_EMBEDDING = new Float32Array(192);
+
 let enginePromise = null;
 let wasmModulePromise = null;
 
@@ -76,6 +83,7 @@ async function synthesizeLongText(tts, text) {
     const result = await tts.synthesize(chunk, {
       language: 'ja',
       lengthScale: 1.2,
+      speakerEmbedding: SPEAKER_EMBEDDING,
     });
     results.push({
       samples: result.samples,
