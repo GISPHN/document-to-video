@@ -1,8 +1,11 @@
 {
   "name": "document-to-video",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,7 +16,7 @@
     "mammoth": "^1.9.1",
     "onnxruntime-web": "^1.24.3",
     "pdfjs-dist": "^5.4.149",
-    "piper-plus": "^0.6.0"
+    "piper-plus": "^0.7.0"
   },
   "devDependencies": {
     "vite": "^8.0.8"
