@@ -1,5 +1,7 @@
 # Document to Video
 
+[![Build check](https://github.com/GISPHN/document-to-video/actions/workflows/ci.yml/badge.svg)](https://github.com/GISPHN/document-to-video/actions/workflows/ci.yml)
+
 PDF、Word、PowerPoint、テキストなどの資料から、短い解説動画をブラウザだけで作成するWebアプリです。
 
 利用者がPC操作に詳しくなくても使えること、利用料金を発生させないこと、入力資料を外部サーバーへアップロードしないことを重視しています。
