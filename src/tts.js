@@ -1,7 +1,10 @@
 import { PiperPlus } from 'piper-plus';
 import * as ort from 'onnxruntime-web';
 
-const MODEL = 'ayousanz/piper-plus-tsukuyomi-chan';
+// CSS10 Japanese model is used as the default because the model card states
+// that it follows the CSS10 public-domain license, making it a better fit for
+// a general-purpose explainer tool than voices with additional usage terms.
+const MODEL = 'ayousanz/piper-plus-css10-ja-6lang';
 const MAX_CHUNK_CHARS = 135;
 const SILENCE_SECONDS = 0.16;
 
@@ -54,7 +57,7 @@ async function synthesizeLongText(tts, text) {
   for (const chunk of chunks) {
     const result = await tts.synthesize(chunk, {
       language: 'ja',
-      lengthScale: 1.0,
+      lengthScale: 1.2,
     });
     results.push({
       samples: result.samples,
