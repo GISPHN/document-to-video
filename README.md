@@ -103,4 +103,4 @@ npm run build
 
 MIT License
 
-Copyright (c) 2026 Ryo Horiike / GISPHN
+Copyright (c) 2026 GISPHN
