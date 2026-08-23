@@ -1,5 +1,4 @@
 import { PiperPlus } from 'piper-plus';
-import initPiperWasm, * as piperWasm from 'piper-plus/wasm/multilingual';
 import * as ort from 'onnxruntime-web';
 
 // CSS10 Japanese model is used as the default because the model card states
@@ -10,17 +9,6 @@ const MAX_CHUNK_CHARS = 135;
 const SILENCE_SECONDS = 0.16;
 
 let enginePromise = null;
-let wasmInitPromise = null;
-
-async function loadPiperWasm() {
-  if (!wasmInitPromise) {
-    // Import the wasm-pack module statically so Vite can emit the JS/WASM assets
-    // with correct GitHub Pages URLs instead of relying on piper-plus's runtime
-    // relative path, which would point outside /document-to-video/ after bundling.
-    wasmInitPromise = initPiperWasm().then(() => piperWasm);
-  }
-  return wasmInitPromise;
-}
 
 export async function initializeTts(onProgress = () => {}) {
   if (!enginePromise) {
@@ -31,7 +19,6 @@ export async function initializeTts(onProgress = () => {}) {
     enginePromise = PiperPlus.initialize({
       model: MODEL,
       ort,
-      wasmLoader: loadPiperWasm,
       onProgress,
     }).catch((error) => {
       enginePromise = null;
