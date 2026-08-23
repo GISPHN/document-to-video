@@ -1,4 +1,5 @@
 import { PiperPlus } from 'piper-plus';
+import initPiperWasm, * as piperWasm from 'piper-plus/wasm/multilingual';
 import * as ort from 'onnxruntime-web';
 
 // CSS10 Japanese model is used as the default because the model card states
@@ -9,6 +10,25 @@ const MAX_CHUNK_CHARS = 135;
 const SILENCE_SECONDS = 0.16;
 
 let enginePromise = null;
+let wasmModulePromise = null;
+
+async function loadPiperWasm() {
+  if (!wasmModulePromise) {
+    // Piper Plus 0.6 normally resolves the G2P WASM module with a runtime
+    // relative path. After Vite bundles the app under a GitHub Pages subpath,
+    // that relative URL can point to the wrong location. Importing the public
+    // package export here lets Vite emit and rewrite the JS/WASM assets, while
+    // wasmLoader gives Piper Plus the already-initialised module explicitly.
+    wasmModulePromise = (async () => {
+      await initPiperWasm();
+      return piperWasm;
+    })().catch((error) => {
+      wasmModulePromise = null;
+      throw error;
+    });
+  }
+  return wasmModulePromise;
+}
 
 export async function initializeTts(onProgress = () => {}) {
   if (!enginePromise) {
@@ -19,6 +39,7 @@ export async function initializeTts(onProgress = () => {}) {
     enginePromise = PiperPlus.initialize({
       model: MODEL,
       ort,
+      wasmLoader: loadPiperWasm,
       onProgress,
     }).catch((error) => {
       enginePromise = null;
